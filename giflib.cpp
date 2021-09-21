@@ -634,11 +634,12 @@ giflib_encoder giflib_encoder_create(void* buf, size_t buf_len)
     }
     e->gif = gif_out;
 
+    // CHANGED: use 8 bits each to avoid color disaturation
     // set up palette lookup table. we need 2^15 entries because we will be
     // using bit-crushed RGB values, 5 bits each. this is a reasonable compromise
     // between fidelity and computation/storage
     e->palette_lookup =
-      (encoder_palette_lookup*)(malloc((1 << 15) * sizeof(encoder_palette_lookup)));
+      (encoder_palette_lookup*)(malloc((1 << 24) * sizeof(encoder_palette_lookup)));
 
     return e;
 }
@@ -799,7 +800,7 @@ static bool giflib_encoder_render_frame(giflib_encoder e,
     }
 
     if (clear_palette_lookup) {
-        memset(e->palette_lookup, 0, (1 << 15) * sizeof(encoder_palette_lookup));
+        memset(e->palette_lookup, 0, (1 << 24) * sizeof(encoder_palette_lookup));
     }
 
     GraphicsControlBlock gcb;
@@ -841,16 +842,16 @@ static bool giflib_encoder_render_frame(giflib_encoder e,
                 continue;
             }
 
-            uint32_t crushed = ((R >> 3) << 10) | ((G >> 3) << 5) | ((B >> 3));
+            uint32_t crushed = (R << 16) | (G << 8) | B);
             int least_dist = INT_MAX;
             int best_color = 0;
             if (!(e->palette_lookup[crushed].present)) {
                 // calculate the best palette entry based on the midpoint of the crushed colors
                 // what this means is that we drop the crushed bits (& 0xf8)
                 // and then OR the highest-order crushed bit back in, which is approx midpoint
-                uint32_t R_center = (R & 0xf8) | 4;
-                uint32_t G_center = (G & 0xf8) | 4;
-                uint32_t B_center = (B & 0xf8) | 4;
+                uint32_t R_center = R;
+                uint32_t G_center = G;
+                uint32_t B_center = B;
 
                 // we're calculating the best, so keep track of which palette entry has least
                 // distance
