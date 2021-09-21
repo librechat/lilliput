@@ -842,7 +842,7 @@ static bool giflib_encoder_render_frame(giflib_encoder e,
                 continue;
             }
 
-            uint32_t crushed = (R << 16) | (G << 8) | B);
+            uint32_t crushed = ((R << 16) | (G << 8) | B);
             int least_dist = INT_MAX;
             int best_color = 0;
             if (!(e->palette_lookup[crushed].present)) {
